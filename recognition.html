@@ -79,6 +79,8 @@ function start() {
   if (buttonEl.innerText.toLowerCase() === 'start') {
     buttonEl.innerText = 'Stop'
     recognition.start()
+    transcriptEl.innerText = '-'
+    confidenceEl.innerText = '-'
     clearEvents()
   } else {
     buttonEl.innerText = 'Start'
