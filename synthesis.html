@@ -64,7 +64,12 @@ function getVoices() {
     if (voices.length > 0) {
       resolve(voices)
     } else {
-      speechSynthesis.addEventListener('voiceschanged', () => resolve(speechSynthesis.getVoices()))
+      console.log('Use voiceschanged event to get voices')
+      speechSynthesis.addEventListener(
+        'voiceschanged',
+        () => resolve(speechSynthesis.getVoices()),
+        {once: true},
+      )
     }
   })
 }
