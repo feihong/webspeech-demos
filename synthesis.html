@@ -60,6 +60,7 @@ async function say() {
 
 function getVoices() {
   return new Promise((resolve) => {
+    // FF and Safari must call getVoices() directly, but WebKit browsers must listen for voiceschanged event
     const voices = speechSynthesis.getVoices()
     if (voices.length > 0) {
       resolve(voices)
