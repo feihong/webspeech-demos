@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown Timer with Prep Time</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        label {
+            font-size: 1.1em;
+            margin-right: 10px;
+            color: #555;
+            display: block; /* Make labels block for better spacing */
+            margin-bottom: 5px;
+            margin-top: 15px; /* Add some space above labels */
+        }
+        select, button {
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 5px; /* Adjust margin */
+            margin-bottom: 15px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            transition: background-color 0.3s ease;
+            margin-top: 20px; /* More space above button */
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #countdown-display {
+            margin-top: 25px;
+            font-size: 3em;
+            font-weight: bold;
+            color: #333;
+        }
+        #message {
+            margin-top: 15px;
+            font-size: 1.2em;
+            color: #d9534f; /* A light red for warnings/messages */
+        }
+        .timer-stage-message {
+            margin-top: 10px;
+            font-size: 1.2em;
+            color: #007bff; /* Blue for stage messages */
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Countdown Timer</h1>
+
+        <label for="prep-time-select">Select Preparation Time:</label>
+        <select id="prep-time-select">
+            <option value="0">None</option>
+            <option value="5">5 seconds</option>
+            <option value="10">10 seconds</option>
+        </select>
+
+        <label for="main-time-select">Select Main Countdown Time:</label>
+        <select id="main-time-select">
+            </select>
+
+        <button id="start-button">Start Countdown</button>
+
+        <div class="timer-stage-message" id="timer-stage"></div>
+        <div id="countdown-display">00:00</div>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        const prepTimeSelect = document.getElementById('prep-time-select');
+        const mainTimeSelect = document.getElementById('main-time-select');
+        const startButton = document.getElementById('start-button');
+        const countdownDisplay = document.getElementById('countdown-display');
+        const messageDisplay = document.getElementById('message');
+        const timerStageDisplay = document.getElementById('timer-stage');
+
+        let countdownInterval;
+        let speechSynth;
+        let currentStage = ''; // 'prep' or 'main'
+
+        // Populate the main countdown dropdown with options from 5 to 60 seconds in increments of 5
+        function populateMainTimeOptions() {
+            for (let i = 5; i <= 60; i += 5) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `${i} seconds`;
+                mainTimeSelect.appendChild(option);
+            }
+        }
+
+        // Function to speak out loud
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                if (!speechSynth) {
+                    speechSynth = window.speechSynthesis;
+                }
+                const utterance = new SpeechSynthesisUtterance(text);
+                // Optional: You can set voice, pitch, and rate here
+                // utterance.voice = speechSynth.getVoices().find(voice => voice.name === 'Google US English'); // Example
+                // utterance.pitch = 1;
+                // utterance.rate = 1;
+                speechSynth.speak(utterance);
+            } else {
+                messageDisplay.textContent = "Speech synthesis not supported in this browser.";
+            }
+        }
+
+        // Function to start the countdown sequence
+        function startCountdownSequence() {
+            clearInterval(countdownInterval); // Clear any existing interval
+
+            const prepTime = parseInt(prepTimeSelect.value);
+            const mainTime = parseInt(mainTimeSelect.value);
+
+            if (isNaN(mainTime) || mainTime <= 0) {
+                messageDisplay.textContent = "Please select a valid main countdown time.";
+                return;
+            }
+
+            startButton.disabled = true; // Disable button during countdown
+            messageDisplay.textContent = ""; // Clear any previous messages
+            timerStageDisplay.textContent = ""; // Clear stage message
+
+            if (prepTime > 0) {
+                startPrepCountdown(prepTime, mainTime);
+            } else {
+                startMainCountdown(mainTime);
+            }
+        }
+
+        // Function to handle the preparation countdown
+        function startPrepCountdown(initialPrepTime, mainTime) {
+            let timeLeft = initialPrepTime;
+            currentStage = 'prep';
+            timerStageDisplay.textContent = "Get Ready!";
+
+            speak("T-minus"); // Speak "T-minus" first
+
+            // Wait for a sufficient time (e.g., 1 to 1.5 seconds)
+            // after "T-minus" is spoken before starting the numerical countdown.
+            // This allows the voice to complete its phrase.
+            setTimeout(() => {
+                countdownDisplay.textContent = formatTime(timeLeft); // Show the initial number
+                if (timeLeft > 0) { // Only speak the number if it's not zero (e.g., if initial prep time is 0)
+                    speak(timeLeft.toString()); // Speak the first number immediately after "T-minus" and delay
+                }
+
+                countdownInterval = setInterval(() => {
+                    timeLeft--;
+                    countdownDisplay.textContent = formatTime(timeLeft);
+
+                    if (timeLeft > 0) {
+                        speak(timeLeft.toString());
+                    } else if (timeLeft === 0) {
+                        speak("Go!");
+                        clearInterval(countdownInterval);
+                        startMainCountdown(mainTime); // Transition to main countdown
+                    }
+                }, 1000); // The interval continues every 1 second
+            }, 1200); // This delay (1200ms or more) should be enough for "T-minus" to play
+                      // and provide a slight pause before the numbers begin.
+        }
+
+        // Function to handle the main countdown
+        function startMainCountdown(initialMainTime) {
+            let timeLeft = initialMainTime;
+            currentStage = 'main';
+            timerStageDisplay.textContent = "Main Countdown";
+            // No initial speak here, as it's handled by "Go!" from prep time or directly by main start
+
+            countdownDisplay.textContent = formatTime(timeLeft);
+
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                countdownDisplay.textContent = formatTime(timeLeft);
+
+                if (timeLeft > 0 && timeLeft <= 10) {
+                    speak(timeLeft.toString());
+                } else if (timeLeft === 0) {
+                    speak("Time's up!");
+                    clearInterval(countdownInterval);
+                    startButton.disabled = false; // Re-enable button
+                    timerStageDisplay.textContent = "Finished";
+                }
+            }, 1000);
+        }
+
+        // Function to format time for display (MM:SS)
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+        }
+
+        // Event Listeners
+        window.addEventListener('load', () => {
+            populateMainTimeOptions();
+            // Ensure voices are loaded before trying to use them (though for basic speak it's often fine)
+            if ('speechSynthesis' in window) {
+                speechSynth = window.speechSynthesis;
+                speechSynth.onvoiceschanged = () => {
+                    // This event fires when voices are loaded/changed
+                    // You might want to re-check available voices here if you're very specific about voice selection
+                };
+            }
+        });
+        startButton.addEventListener('click', startCountdownSequence);
+    </script>
+</body>
+</html>
