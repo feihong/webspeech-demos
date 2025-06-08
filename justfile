@@ -1,3 +1,6 @@
+install:
+  pip install ghp-import
+
 serve:
   python -m http.server
 
